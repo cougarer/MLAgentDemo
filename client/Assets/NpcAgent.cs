@@ -7,7 +7,6 @@ using Random = UnityEngine.Random;
 public class NpcAgent : Agent
 {
     public GameObject area;
-    FoodCollectorArea m_MyArea;
     bool m_Frozen;
     bool m_Poisoned;
     bool m_Satiated;
@@ -38,7 +37,7 @@ public class NpcAgent : Agent
     public override void Initialize()
     {
         m_AgentRb = GetComponent<Rigidbody>();
-        m_MyArea = area.GetComponent<FoodCollectorArea>();
+        // m_MyArea = area.GetComponent<FoodCollectorArea>();
         m_ResetParams = Academy.Instance.EnvironmentParameters;
         SetResetParameters();
     }
@@ -203,9 +202,9 @@ public class NpcAgent : Agent
         m_Shoot = false;
         m_AgentRb.velocity = Vector3.zero;
         myLaser.transform.localScale = new Vector3(0f, 0f, 0f);
-        transform.position = new Vector3(Random.Range(-m_MyArea.range, m_MyArea.range),
-            2f, Random.Range(-m_MyArea.range, m_MyArea.range))
-            + area.transform.position;
+        // transform.position = new Vector3(Random.Range(-m_MyArea.range, m_MyArea.range),
+        //     2f, Random.Range(-m_MyArea.range, m_MyArea.range))
+            // + area.transform.position;
         transform.rotation = Quaternion.Euler(new Vector3(0f, Random.Range(0, 360)));
 
         SetResetParameters();
@@ -213,28 +212,28 @@ public class NpcAgent : Agent
 
     void OnCollisionEnter(Collision collision)
     {
-        // 如何是遇到其他NPC, roll一个随机数, 有几率打架, 打赢了有奖励, 打输了扣分, 需要原地等待惩罚一段时间
-        // 如果遇到的是怪物, 打不打的赢看等级和血量, 打赢了有奖励, 打输了扣分
-        if (collision.gameObject.CompareTag("food"))
-        {
-            collision.gameObject.GetComponent<FoodLogic>().OnEaten();
-            AddReward(1f);
-            if (contribute)
-            {
-                m_FoodCollecterSettings.totalScore += 1;
-            }
-        }
-        if (collision.gameObject.CompareTag("badFood"))
-        {
-            Poison();
-            collision.gameObject.GetComponent<FoodLogic>().OnEaten();
-
-            AddReward(-1f);
-            if (contribute)
-            {
-                m_FoodCollecterSettings.totalScore -= 1;
-            }
-        }
+        // // 如何是遇到其他NPC, roll一个随机数, 有几率打架, 打赢了有奖励, 打输了扣分, 需要原地等待惩罚一段时间
+        // // 如果遇到的是怪物, 打不打的赢看等级和血量, 打赢了有奖励, 打输了扣分
+        // if (collision.gameObject.CompareTag("food"))
+        // {
+        //     collision.gameObject.GetComponent<FoodLogic>().OnEaten();
+        //     AddReward(1f);
+        //     if (contribute)
+        //     {
+        //         m_FoodCollecterSettings.totalScore += 1;
+        //     }
+        // }
+        // if (collision.gameObject.CompareTag("badFood"))
+        // {
+        //     Poison();
+        //     collision.gameObject.GetComponent<FoodLogic>().OnEaten();
+        //
+        //     AddReward(-1f);
+        //     if (contribute)
+        //     {
+        //         m_FoodCollecterSettings.totalScore -= 1;
+        //     }
+        // }
     }
 
     public void SetLaserLengths()
