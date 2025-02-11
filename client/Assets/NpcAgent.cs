@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using Unity.MLAgents;
 using Unity.MLAgents.Actuators;
@@ -6,163 +7,161 @@ using Random = UnityEngine.Random;
 
 public class NpcAgent : Agent
 {
-    public GameObject area;
-    bool m_Frozen;
-    bool m_Poisoned;
-    bool m_Satiated;
-    bool m_Shoot;
-    float m_FrozenTime;
-    float m_EffectTime;
-    Rigidbody m_AgentRb;
-    float m_LaserLength;
-    // Speed of agent rotation.
+    public SurvivalArea area;
+    Rigidbody _AgentRb;
+
     public float turnSpeed = 300;
-
-    // Speed of agent movement.
     public float moveSpeed = 2;
-    public Material normalMaterial;
-    public Material badMaterial;
-    public Material goodMaterial;
-    public Material frozenMaterial;
-    public GameObject myLaser;
-    public bool contribute;
-    public bool useVectorObs;
-    [Tooltip("Use only the frozen flag in vector observations. If \"Use Vector Obs\" " +
-             "is checked, this option has no effect. This option is necessary for the " +
-             "VisualFoodCollector scene.")]
-    public bool useVectorFrozenFlag;
+    private float _atkCD; // 攻击cd, 与等级相关
+    private float _minAtkCD = 1; // 最小攻击cd
+    private float _maxAtkCD = 2; // 最大攻击cd
+    private int _hpPotionCnt; // 身上带的药水的数量
+    private int _hpPotionEffect = 100; // 药水效果
+    private int _hpPotionPrice = 50; // 药水价格
+    private int _gold; // 玩家金币
+    private int _expScrollPrice = 50; // 经验卷轴价格
+    private int _expScrollEffect = 100; // 经验卷轴效果
 
-    EnvironmentParameters m_ResetParams;
+    private float AtkCD
+    {
+        get
+        {
+            return _minAtkCD + (float)(_maxLevel - _level) / _maxLevel * (_maxAtkCD - _minAtkCD);
+        }
+    }
+
+    private float _hp; // 当前血量
+    private float _maxHp; // 最大血量, 与等级相关
+    private int _level; // 当前等级
+    private int _maxLevel = 10; // 最大等级
+    private float _exp; // 经验值
+    private float _materialNum; // 怪物材料数量, 可以用来换钱
+
+    // agent level进阶需要的经验值
+    private List<(int, float)> expTable = new List<(int, float)>()
+    {
+        (1, 100),
+        (2, 200),
+        (3, 400),
+        (4, 800),
+        (5, 1600),
+        (6, 3200),
+        (7, 6400),
+        (8, 12800),
+        (9, 25600),
+        (10, 51200),
+    };
+
+    private bool _inCombat; // 战斗中移动速度下降
+    private bool _inShop; // 在商店附近一定范围内不会被攻击, 会自动回血, 可以购买道具
+
+    private EnvironmentParameters _ResetParams;
 
     public override void Initialize()
     {
-        m_AgentRb = GetComponent<Rigidbody>();
-        // m_MyArea = area.GetComponent<FoodCollectorArea>();
-        m_ResetParams = Academy.Instance.EnvironmentParameters;
+        _AgentRb = GetComponent<Rigidbody>();
+        _ResetParams = Academy.Instance.EnvironmentParameters;
         SetResetParameters();
     }
 
+
     public override void CollectObservations(VectorSensor sensor)
     {
-        if (useVectorObs)
-        {
-            var localVelocity = transform.InverseTransformDirection(m_AgentRb.velocity);
-            sensor.AddObservation(localVelocity.x);
-            sensor.AddObservation(localVelocity.z);
-            sensor.AddObservation(m_Frozen);
-            sensor.AddObservation(m_Shoot);
-        }
-        else if (useVectorFrozenFlag)
-        {
-            sensor.AddObservation(m_Frozen);
-        }
+        var localVelocity = transform.InverseTransformDirection(_AgentRb.velocity);
+        sensor.AddObservation(localVelocity.x);
+        sensor.AddObservation(localVelocity.z);
+        sensor.AddObservation(_hp);
+        sensor.AddObservation(_maxHp);
+        sensor.AddObservation(_materialNum);
+        sensor.AddObservation(_level);
     }
 
     public void MoveAgent(ActionBuffers actionBuffers)
     {
-        m_Shoot = false;
-
-        if (Time.time > m_FrozenTime + 4f && m_Frozen)
-        {
-            Unfreeze();
-        }
-        if (Time.time > m_EffectTime + 0.5f)
-        {
-            if (m_Poisoned)
-            {
-                Unpoison();
-            }
-            if (m_Satiated)
-            {
-                Unsatiate();
-            }
-        }
-
         var dirToGo = Vector3.zero;
         var rotateDir = Vector3.zero;
 
         var continuousActions = actionBuffers.ContinuousActions;
         var discreteActions = actionBuffers.DiscreteActions;
 
-        if (!m_Frozen)
+        var forward = Mathf.Clamp(continuousActions[0], -1f, 1f);
+        var right = Mathf.Clamp(continuousActions[1], -1f, 1f);
+        var rotate = Mathf.Clamp(continuousActions[2], -1f, 1f);
+
+
+
+        dirToGo = transform.forward * forward;
+        dirToGo += transform.right * right;
+        rotateDir = -transform.up * rotate;
+        _AgentRb.AddForce(dirToGo * moveSpeed, ForceMode.VelocityChange);
+        transform.Rotate(rotateDir, Time.fixedDeltaTime * turnSpeed);
+
+        var usePotionCommand = discreteActions[0] > 0;
+        if (usePotionCommand)
         {
-            var forward = Mathf.Clamp(continuousActions[0], -1f, 1f);
-            var right = Mathf.Clamp(continuousActions[1], -1f, 1f);
-            var rotate = Mathf.Clamp(continuousActions[2], -1f, 1f);
+        }
 
-            dirToGo = transform.forward * forward;
-            dirToGo += transform.right * right;
-            rotateDir = -transform.up * rotate;
+        var buyPotionCommand = discreteActions[0] > 0;
+        if (buyPotionCommand)
+        {
+        }
 
-            var shootCommand = discreteActions[0] > 0;
-            if (shootCommand)
+        var buyExpCommand = discreteActions[0] > 0;
+        if (buyExpCommand)
+        {
+        }
+
+        var atkAgentCommand = discreteActions[0] > 0;
+        if (atkAgentCommand)
+        {
+        }
+
+        var atkMonsterCommand = discreteActions[0] > 0;
+        if (atkMonsterCommand)
+        {
+        }
+
+        if (_inCombat) // 战斗中 速度上限12.5f
+        {
+            if (_AgentRb.velocity.sqrMagnitude > 12.5f)
             {
-                m_Shoot = true;
-                dirToGo *= 0.5f;
-                m_AgentRb.velocity *= 0.75f;
+                _AgentRb.velocity *= 0.95f;
             }
-            m_AgentRb.AddForce(dirToGo * moveSpeed, ForceMode.VelocityChange);
-            transform.Rotate(rotateDir, Time.fixedDeltaTime * turnSpeed);
         }
-
-        if (m_AgentRb.velocity.sqrMagnitude > 25f) // slow it down
+        else // 非战斗中, 速度上线25f
         {
-            m_AgentRb.velocity *= 0.95f;
-        }
-
-        if (m_Shoot)
-        {
-            var myTransform = transform;
-            myLaser.transform.localScale = new Vector3(1f, 1f, m_LaserLength);
-            var rayDir = 25.0f * myTransform.forward;
-            Debug.DrawRay(myTransform.position, rayDir, Color.red, 0f, true);
-            RaycastHit hit;
-            if (Physics.SphereCast(transform.position, 2f, rayDir, out hit, 25f))
+            if (_AgentRb.velocity.sqrMagnitude > 25f)
             {
-                if (hit.collider.gameObject.CompareTag("agent"))
-                {
-                    hit.collider.gameObject.GetComponent<NpcAgent>().Freeze();
-                }
+                _AgentRb.velocity *= 0.95f;
             }
         }
-        else
+    }
+
+    private void UseHpPotion()
+    {
+        if (_hpPotionCnt > 0)
         {
-            myLaser.transform.localScale = new Vector3(0f, 0f, 0f);
+            _hpPotionCnt--;
+            _hp = _hp + _hpPotionEffect > _maxHp ? _maxHp : _hp + _hpPotionEffect;
         }
     }
 
-    void Freeze()
+    private void BuyHpPotion(int cnt)
     {
-        gameObject.tag = "frozenAgent";
-        m_Frozen = true;
-        m_FrozenTime = Time.time;
-        gameObject.GetComponentInChildren<Renderer>().material = frozenMaterial;
+        if (_gold > _hpPotionPrice * cnt)
+        {
+            _gold -= _hpPotionPrice * cnt;
+            _hpPotionCnt += cnt;
+        }
     }
 
-    void Unfreeze()
+    private void BuyExpScroll(int cnt)
     {
-        m_Frozen = false;
-        gameObject.tag = "agent";
-        gameObject.GetComponentInChildren<Renderer>().material = normalMaterial;
-    }
-
-    void Poison()
-    {
-        m_Poisoned = true;
-        m_EffectTime = Time.time;
-        gameObject.GetComponentInChildren<Renderer>().material = badMaterial;
-    }
-
-    void Unpoison()
-    {
-        m_Poisoned = false;
-        gameObject.GetComponentInChildren<Renderer>().material = normalMaterial;
-    }
-
-    void Unsatiate()
-    {
-        m_Satiated = false;
-        gameObject.GetComponentInChildren<Renderer>().material = normalMaterial;
+        if (_gold > _expScrollPrice * cnt)
+        {
+            _gold -= _expScrollPrice * cnt;
+            _exp += _expScrollEffect * cnt;
+        }
     }
 
     public override void OnActionReceived(ActionBuffers actionBuffers)
@@ -196,12 +195,11 @@ public class NpcAgent : Agent
 
     public override void OnEpisodeBegin()
     {
-        Unfreeze();
-        Unpoison();
-        Unsatiate();
-        m_Shoot = false;
-        m_AgentRb.velocity = Vector3.zero;
-        myLaser.transform.localScale = new Vector3(0f, 0f, 0f);
+        // Unfreeze();
+        // Unpoison();
+        // Unsatiate();
+        // _AgentRb.velocity = Vector3.zero;
+        // myLaser.transform.localScale = new Vector3(0f, 0f, 0f);
         // transform.position = new Vector3(Random.Range(-m_MyArea.range, m_MyArea.range),
         //     2f, Random.Range(-m_MyArea.range, m_MyArea.range))
             // + area.transform.position;
@@ -210,46 +208,14 @@ public class NpcAgent : Agent
         SetResetParameters();
     }
 
-    void OnCollisionEnter(Collision collision)
-    {
-        // // 如何是遇到其他NPC, roll一个随机数, 有几率打架, 打赢了有奖励, 打输了扣分, 需要原地等待惩罚一段时间
-        // // 如果遇到的是怪物, 打不打的赢看等级和血量, 打赢了有奖励, 打输了扣分
-        // if (collision.gameObject.CompareTag("food"))
-        // {
-        //     collision.gameObject.GetComponent<FoodLogic>().OnEaten();
-        //     AddReward(1f);
-        //     if (contribute)
-        //     {
-        //         m_FoodCollecterSettings.totalScore += 1;
-        //     }
-        // }
-        // if (collision.gameObject.CompareTag("badFood"))
-        // {
-        //     Poison();
-        //     collision.gameObject.GetComponent<FoodLogic>().OnEaten();
-        //
-        //     AddReward(-1f);
-        //     if (contribute)
-        //     {
-        //         m_FoodCollecterSettings.totalScore -= 1;
-        //     }
-        // }
-    }
-
-    public void SetLaserLengths()
-    {
-        m_LaserLength = m_ResetParams.GetWithDefault("laser_length", 1.0f);
-    }
-
     public void SetAgentScale()
     {
-        float agentScale = m_ResetParams.GetWithDefault("agent_scale", 1.0f);
+        float agentScale = _ResetParams.GetWithDefault("agent_scale", 1.0f);
         gameObject.transform.localScale = new Vector3(agentScale, agentScale, agentScale);
     }
 
     public void SetResetParameters()
     {
-        SetLaserLengths();
         SetAgentScale();
     }
 }
