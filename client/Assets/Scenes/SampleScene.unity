@@ -437,6 +437,7 @@ GameObject:
   - component: {fileID: 877888260}
   - component: {fileID: 877888259}
   - component: {fileID: 877888258}
+  - component: {fileID: 877888261}
   m_Layer: 0
   m_Name: Terrain
   m_TagString: Untagged
@@ -519,6 +520,23 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &877888261
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 877888257}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ebfe250e6f82d7c4092fe28321603101, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  monster: {fileID: 1524411113276028, guid: e2aafa8770d34a9591b41bedf4e318ba, type: 3}
+  shop: {fileID: 1646596920117602, guid: 2e2ed77b6686b13478c958cacf9a77c3, type: 3}
+  monsterNum: 10
+  shopNum: 10
+  range: 0
 --- !u!1001 &1276812839
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -529,7 +547,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1675487488, guid: 0e8a48316c7f243948a75f0fca931274, type: 3}
       propertyPath: m_Name
-      value: Spartan_Warrior
+      value: NpcAgent
+      objectReference: {fileID: 0}
+    - target: {fileID: 1675487488, guid: 0e8a48316c7f243948a75f0fca931274, type: 3}
+      propertyPath: m_TagString
+      value: Agent
       objectReference: {fileID: 0}
     - target: {fileID: 1675487489, guid: 0e8a48316c7f243948a75f0fca931274, type: 3}
       propertyPath: m_ApplyRootMotion
@@ -587,6 +609,10 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 1276812842}
+    - targetCorrespondingSourceObject: {fileID: 1675487488, guid: 0e8a48316c7f243948a75f0fca931274,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1276812845}
   m_SourcePrefab: {fileID: 100100000, guid: 0e8a48316c7f243948a75f0fca931274, type: 3}
 --- !u!1 &1276812840 stripped
 GameObject:
@@ -641,18 +667,42 @@ MonoBehaviour:
   m_CellScale: {x: 1, y: 0.01, z: 1}
   m_GridSize: {x: 16, y: 1, z: 16}
   m_RotateWithAgent: 1
-  m_AgentGameObject: {fileID: 0}
-  m_DetectableTags: []
+  m_AgentGameObject: {fileID: 1276812840}
+  m_DetectableTags:
+  - 
+  - 
   m_ColliderMask:
     serializedVersion: 2
     m_Bits: 0
   m_MaxColliderBufferSize: 500
   m_InitialColliderBufferSize: 4
-  m_DebugColors: []
+  m_DebugColors:
+  - {r: 0, g: 0, b: 0, a: 0}
+  - {r: 0, g: 0, b: 0, a: 0}
   m_GizmoYOffset: 0
   m_ShowGizmos: 0
   m_CompressionType: 1
   m_ObservationStacks: 1
+--- !u!114 &1276812845
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1276812840}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: df57aeec5def50c40be0df2afbf110ab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  agentParameters:
+    maxStep: 0
+  hasUpgradedFromAgentParameters: 1
+  MaxStep: 0
+  agentid: 1
+  area: {fileID: 877888261}
+  turnSpeed: 300
+  moveSpeed: 2
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

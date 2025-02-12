@@ -7,6 +7,7 @@ using Random = UnityEngine.Random;
 
 public class NpcAgent : Agent
 {
+    public int agentid; // 这个从场景赋值
     public SurvivalArea area;
     Rigidbody _AgentRb;
 
@@ -22,6 +23,16 @@ public class NpcAgent : Agent
     private int _expScrollPrice = 50; // 经验卷轴价格
     private int _expScrollEffect = 100; // 经验卷轴效果
 
+    private float _lastAtkTime; // 上次攻击时间
+    private float _lastBeAtkTime; // 上次被攻击时间
+
+    private float Damage
+    {
+        get
+        {
+            return 10 + _level; // 攻击力是等级相关的
+        }
+    }
     private float AtkCD
     {
         get
@@ -31,15 +42,38 @@ public class NpcAgent : Agent
     }
 
     private float _hp; // 当前血量
-    private float _maxHp; // 最大血量, 与等级相关
+    private float _maxHp = 200; // 最大血量
     private int _level; // 当前等级
     private int _maxLevel = 10; // 最大等级
-    private float _exp; // 经验值
+
+    private float _exp;
+    // 经验值
+    private float Exp
+    {
+        get
+        {
+            return _exp;
+        }
+        set
+        {
+            foreach (var item in expTable)
+            {
+                if (value > item.Item2)
+                {
+                    _level = item.Item1;
+                }
+            }
+
+            _exp = value;
+        }
+    }
+
     private float _materialNum; // 怪物材料数量, 可以用来换钱
 
-    // agent level进阶需要的经验值
+    // agent level进阶需要的经验值, 举例: 大于100点经验值才能到1级
     private List<(int, float)> expTable = new List<(int, float)>()
     {
+        (0, 0),
         (1, 100),
         (2, 200),
         (3, 400),
@@ -64,16 +98,51 @@ public class NpcAgent : Agent
         SetResetParameters();
     }
 
+    public int GetLevel()
+    {
+        return _level;
+    }
+
+    public float GetHp()
+    {
+        return _hp;
+    }
 
     public override void CollectObservations(VectorSensor sensor)
     {
         var localVelocity = transform.InverseTransformDirection(_AgentRb.velocity);
         sensor.AddObservation(localVelocity.x);
         sensor.AddObservation(localVelocity.z);
-        sensor.AddObservation(_hp);
-        sensor.AddObservation(_maxHp);
-        sensor.AddObservation(_materialNum);
-        sensor.AddObservation(_level);
+        sensor.AddObservation(_hp); // agent当前血量
+        sensor.AddObservation(_maxHp); // agent当前等级的最大血量
+        sensor.AddObservation(_materialNum); // 怪物材料数量
+        sensor.AddObservation(area.GetAgentCntInRange(this)); // 范围内agent数量
+        sensor.AddObservation(area.GetNearestAgent(this) != null ? area.GetNearestAgent(this).GetLevel() : 0); // 最近agent等级
+        sensor.AddObservation(area.GetNearestAgent(this) != null ? area.GetNearestAgent(this).GetHp() : 0); // 最近agent血量
+        sensor.AddObservation(area.GetNearestAgent(this) != null ? area.GetNearestAgent(this).agentid : 0); // 最近agent id
+        sensor.AddObservation(area.GetMonsterCntInRange(this)); // 范围内怪物数量
+        sensor.AddObservation(area.GetNearestMonster(this) ? area.GetNearestMonster(this).GetHp() : 0); // 最近怪物血量
+        sensor.AddObservation(area.GetNearestMonster(this) ? area.GetNearestMonster(this).GetLevel() : 0); // 最近怪物等级
+        sensor.AddObservation(area.GetNearestMonster(this) ? area.GetNearestMonster(this).monsterid : 0); // 最近怪物id
+        sensor.AddObservation(_gold); // 金币数量
+    }
+
+    public void Reset()
+    {
+        _level = 0;
+        _hp = _maxHp;
+        _inCombat = false;
+    }
+
+    // 施加被攻击
+    public void ApplyAtk(float num)
+    {
+        _hp -= num;
+        if (_hp <= 0)
+        {
+            AddReward(-100);
+            area.RespawnAgent(this);
+        }
     }
 
     public void MoveAgent(ActionBuffers actionBuffers)
@@ -88,8 +157,6 @@ public class NpcAgent : Agent
         var right = Mathf.Clamp(continuousActions[1], -1f, 1f);
         var rotate = Mathf.Clamp(continuousActions[2], -1f, 1f);
 
-
-
         dirToGo = transform.forward * forward;
         dirToGo += transform.right * right;
         rotateDir = -transform.up * rotate;
@@ -99,26 +166,59 @@ public class NpcAgent : Agent
         var usePotionCommand = discreteActions[0] > 0;
         if (usePotionCommand)
         {
+            UseHpPotion();
         }
 
-        var buyPotionCommand = discreteActions[0] > 0;
-        if (buyPotionCommand)
+        var buyPotionCommand = discreteActions[1];
+        if (buyPotionCommand > 0)
         {
+            if (area.GetNearestShop(this) != null)
+            {
+                BuyHpPotion(buyPotionCommand);
+            }
         }
 
-        var buyExpCommand = discreteActions[0] > 0;
-        if (buyExpCommand)
+        var buyExpCommand = discreteActions[2];
+        if (buyExpCommand > 0)
         {
+            if (area.GetNearestShop(this) != null)
+            {
+                BuyExpScroll(buyExpCommand);
+            }
         }
 
-        var atkAgentCommand = discreteActions[0] > 0;
-        if (atkAgentCommand)
+        var atkAgentCommand = discreteActions[3]; // 直接转为agentid
+        if (atkAgentCommand > 0 && atkAgentCommand != agentid)
         {
+            // 看一下他想打的agent是否在攻击范围内
+            var agent = area.GetAgentInRangeById(atkAgentCommand, this);
+            if (agent != null)
+            {
+                // 这个需要判定攻击cd
+                if (Time.time - _lastAtkTime > AtkCD)
+                {
+                    agent.ApplyAtk(Damage);
+                    _lastAtkTime = Time.time;
+                    _inCombat = true;
+                }
+            }
         }
 
         var atkMonsterCommand = discreteActions[0] > 0;
         if (atkMonsterCommand)
         {
+            // 这个需要判定攻击cd
+            var monster = area.GetMonsterInRangeById(atkAgentCommand, this);
+            if (monster != null)
+            {
+                // 这个需要判定攻击cd
+                if (Time.time - _lastAtkTime > AtkCD)
+                {
+                    _lastAtkTime = Time.time;
+                    _inCombat = true;
+                    monster.ApplyAtk(Damage);
+                }
+            }
         }
 
         if (_inCombat) // 战斗中 速度上限12.5f
@@ -139,6 +239,11 @@ public class NpcAgent : Agent
 
     private void UseHpPotion()
     {
+        if (_hp < _maxHp)
+        {
+            AddReward(10); // 有效加血给奖励
+        }
+
         if (_hpPotionCnt > 0)
         {
             _hpPotionCnt--;
@@ -159,8 +264,9 @@ public class NpcAgent : Agent
     {
         if (_gold > _expScrollPrice * cnt)
         {
+            AddReward(10 * cnt); // 加经验给奖励
             _gold -= _expScrollPrice * cnt;
-            _exp += _expScrollEffect * cnt;
+            Exp += _expScrollEffect * cnt;
         }
     }
 
@@ -172,25 +278,6 @@ public class NpcAgent : Agent
 
     public override void Heuristic(in ActionBuffers actionsOut)
     {
-        // var continuousActionsOut = actionsOut.ContinuousActions;
-        // if (Input.GetKey(KeyCode.D))
-        // {
-        //     continuousActionsOut[2] = 1;
-        // }
-        // if (Input.GetKey(KeyCode.W))
-        // {
-        //     continuousActionsOut[0] = 1;
-        // }
-        // if (Input.GetKey(KeyCode.A))
-        // {
-        //     continuousActionsOut[2] = -1;
-        // }
-        // if (Input.GetKey(KeyCode.S))
-        // {
-        //     continuousActionsOut[0] = -1;
-        // }
-        // var discreteActionsOut = actionsOut.DiscreteActions;
-        // discreteActionsOut[0] = Input.GetKey(KeyCode.Space) ? 1 : 0;
     }
 
     public override void OnEpisodeBegin()
