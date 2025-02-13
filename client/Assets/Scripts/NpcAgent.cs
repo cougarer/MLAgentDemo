@@ -204,7 +204,7 @@ public class NpcAgent : Agent
             }
         }
 
-        var atkMonsterCommand = discreteActions[0] > 0;
+        var atkMonsterCommand = discreteActions[4] > 0;
         if (atkMonsterCommand)
         {
             // 这个需要判定攻击cd
@@ -239,13 +239,13 @@ public class NpcAgent : Agent
 
     private void UseHpPotion()
     {
-        if (_hp < _maxHp)
-        {
-            AddReward(10); // 有效加血给奖励
-        }
-
         if (_hpPotionCnt > 0)
         {
+            if (_hp < _maxHp)
+            {
+                AddReward(10); // 有效加血给奖励
+            }
+
             _hpPotionCnt--;
             _hp = _hp + _hpPotionEffect > _maxHp ? _maxHp : _hp + _hpPotionEffect;
         }
@@ -278,6 +278,26 @@ public class NpcAgent : Agent
 
     public override void Heuristic(in ActionBuffers actionsOut)
     {
+        var continuousActionsOut = actionsOut.ContinuousActions;
+        if (Input.GetKey(KeyCode.D))
+        {
+            continuousActionsOut[2] = 1;
+        }
+
+        if (Input.GetKey(KeyCode.W))
+        {
+            continuousActionsOut[0] = 1;
+        }
+
+        if (Input.GetKey(KeyCode.A))
+        {
+            continuousActionsOut[2] = -1;
+        }
+
+        if (Input.GetKey(KeyCode.S))
+        {
+            continuousActionsOut[0] = -1;
+        }
     }
 
     public override void OnEpisodeBegin()

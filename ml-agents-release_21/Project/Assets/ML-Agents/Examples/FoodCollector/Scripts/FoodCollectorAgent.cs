@@ -191,25 +191,25 @@ public class FoodCollectorAgent : Agent
 
     public override void Heuristic(in ActionBuffers actionsOut)
     {
-        var continuousActionsOut = actionsOut.ContinuousActions;
-        if (Input.GetKey(KeyCode.D))
-        {
-            continuousActionsOut[2] = 1;
-        }
-        if (Input.GetKey(KeyCode.W))
-        {
-            continuousActionsOut[0] = 1;
-        }
-        if (Input.GetKey(KeyCode.A))
-        {
-            continuousActionsOut[2] = -1;
-        }
-        if (Input.GetKey(KeyCode.S))
-        {
-            continuousActionsOut[0] = -1;
-        }
-        var discreteActionsOut = actionsOut.DiscreteActions;
-        discreteActionsOut[0] = Input.GetKey(KeyCode.Space) ? 1 : 0;
+        // var continuousActionsOut = actionsOut.ContinuousActions;
+        // if (Input.GetKey(KeyCode.D))
+        // {
+        //     continuousActionsOut[2] = 1;
+        // }
+        // if (Input.GetKey(KeyCode.W))
+        // {
+        //     continuousActionsOut[0] = 1;
+        // }
+        // if (Input.GetKey(KeyCode.A))
+        // {
+        //     continuousActionsOut[2] = -1;
+        // }
+        // if (Input.GetKey(KeyCode.S))
+        // {
+        //     continuousActionsOut[0] = -1;
+        // }
+        // var discreteActionsOut = actionsOut.DiscreteActions;
+        // discreteActionsOut[0] = Input.GetKey(KeyCode.Space) ? 1 : 0;
     }
 
     public override void OnEpisodeBegin()
