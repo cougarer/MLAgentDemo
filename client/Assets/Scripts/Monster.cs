@@ -9,7 +9,7 @@ public class Monster : MonoBehaviour
     private float _hp; // 当前血量
     private float _maxHp = 20; // 最大血量
     private int _level = 1; // 暂时先都是1级怪物
-    [NonSerialized] public int rewardExp = 50; // 击杀奖励经验
+    [NonSerialized] public int rewardExp = 90; // 击杀奖励经验
     [NonSerialized] public int monsterid;
     [NonSerialized] public float speed = 1f; // 怪物移动速度
     public float range = 10f; // 移动范围，以怪物初始位置为中心的正方形区域

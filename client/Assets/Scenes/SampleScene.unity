@@ -1116,9 +1116,9 @@ MonoBehaviour:
   spawnCenter: {fileID: 1419787446}
   monster: {fileID: 1524411113276028, guid: e2aafa8770d34a9591b41bedf4e318ba, type: 3}
   shop: {fileID: 1646596920117602, guid: 2e2ed77b6686b13478c958cacf9a77c3, type: 3}
-  monsterNum: 10
-  shopNum: 3
-  range: 80
+  monsterNum: 80
+  shopNum: 6
+  range: 100
 --- !u!1001 &1276812839
 PrefabInstance:
   m_ObjectHideFlags: 0

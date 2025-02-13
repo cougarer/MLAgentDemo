@@ -41,10 +41,11 @@ public class NpcAgent : Agent
     }
 
     private float _hp; // 当前血量
-    private float _maxHp = 200; // 最大血量
+    private float _maxHp = 1000; // 最大血量
     private int _level; // 当前等级
     private int _maxLevel = 10; // 最大等级
 
+    private int _goldMonster = 90; //击杀怪物的奖励金币
     private float _exp;
 
     // 经验值
@@ -84,14 +85,14 @@ public class NpcAgent : Agent
         (0, 0),
         (1, 100),
         (2, 200),
-        (3, 400),
-        (4, 800),
-        (5, 1600),
-        (6, 3200),
-        (7, 6400),
-        (8, 12800),
-        (9, 25600),
-        (10, 51200),
+        (3, 300),
+        (4, 400),
+        (5, 500),
+        (6, 600),
+        (7, 700),
+        (8, 800),
+        (9, 900),
+        (10, 1000),
     };
 
     private bool _inCombat; // 战斗中移动速度下降
@@ -127,6 +128,12 @@ public class NpcAgent : Agent
         return _hp;
     }
 
+    public int GetGold()
+    {
+        return _gold;
+    }
+
+
     public override void CollectObservations(VectorSensor sensor)
     {
         var localVelocity = transform.InverseTransformDirection(_AgentRb.velocity);
@@ -160,9 +167,12 @@ public class NpcAgent : Agent
 
     public void Reset()
     {
+        _lastAtkTime = 0;
         _level = 0;
         _hp = _maxHp;
+        _gold = 0;
         _inCombat = false;
+        _exp = 0;
     }
 
     // 施加被攻击, 被agent击杀的话增加agent的经验
@@ -175,7 +185,7 @@ public class NpcAgent : Agent
             area.RespawnAgent(this);
         }
 
-        return Random.Range(10, 50);
+        return Random.Range(200, 500);
     }
 
     public void MoveAgent(ActionBuffers actionBuffers)
@@ -279,6 +289,7 @@ public class NpcAgent : Agent
         {
             AddReward(10); // 击杀npc给奖励
             Exp += ret;
+            _gold += agent.GetGold();
             FloatTip("agent" + agentid + "成功击杀其他agent, 当前经验值为" + Exp);
             area.RespawnAgent(agent); // 让这个agent重生
         }
@@ -293,6 +304,7 @@ public class NpcAgent : Agent
             _materialNum += monsterKillRet.Item1;
             AddReward(10); // 击杀怪物给奖励
             Exp += monster.rewardExp;
+            _gold += _goldMonster;
             FloatTip("agent" + agentid + "成功击杀怪物, 当前经验值为" + Exp);
             area.RespawnMonster(monsterKillRet.Item2); // 让这个怪物重生
         }
@@ -302,7 +314,7 @@ public class NpcAgent : Agent
     {
         if (_hpPotionCnt > 0)
         {
-            FloatTip("agentid为" + agentid + "的个体使用了血瓶");
+            FloatTip("agentid为" + agentid + "的个体使用了血瓶, 当前血量为" + _hp + "最大血量为" + _maxHp + "当前血瓶数量为" + _hpPotionCnt);
             if (_hp < _maxHp)
             {
                 AddReward(10); // 有效加血给奖励
@@ -317,9 +329,9 @@ public class NpcAgent : Agent
     {
         if (_gold > _hpPotionPrice * cnt)
         {
-            FloatTip("agentid为" + agentid + "的个体购买了血瓶");
             _gold -= _hpPotionPrice * cnt;
             _hpPotionCnt += cnt;
+            FloatTip("agentid为" + agentid + "的个体购买了血瓶, 当前血瓶数量为" + _hpPotionCnt + " 剩余金币为" + _gold);
         }
     }
 
@@ -327,10 +339,10 @@ public class NpcAgent : Agent
     {
         if (_gold > _expScrollPrice * cnt)
         {
-            FloatTip("agentid为" + agentid + "的个体购买并使用了经验卷轴");
             AddReward(10 * cnt); // 加经验给奖励
             _gold -= _expScrollPrice * cnt;
             Exp += _expScrollEffect * cnt;
+            FloatTip("agentid为" + agentid + "的个体购买并使用了经验卷轴");
         }
     }
 
