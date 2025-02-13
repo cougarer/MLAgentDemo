@@ -7,6 +7,7 @@ using Random = UnityEngine.Random;
 
 public class NpcAgent : Agent
 {
+    public DynamicTextData textData;
     public int agentid; // 这个从场景赋值
     public SurvivalArea area;
     Rigidbody _AgentRb;
@@ -91,6 +92,16 @@ public class NpcAgent : Agent
 
     private EnvironmentParameters _ResetParams;
 
+    public void FloatTip(string str)
+    {
+        Vector3 destination = transform.position + new Vector3(0, 1, 0);
+        destination.x += (Random.value - 0.5f) / 3f;
+        destination.y += Random.value;
+        destination.z += (Random.value - 0.5f) / 3f;
+
+        DynamicTextManager.CreateText(destination, str, textData);
+    }
+
     public override void Initialize()
     {
         _AgentRb = GetComponent<Rigidbody>();
@@ -110,6 +121,7 @@ public class NpcAgent : Agent
 
     public override void CollectObservations(VectorSensor sensor)
     {
+        FloatTip("test123123");
         var localVelocity = transform.InverseTransformDirection(_AgentRb.velocity);
         sensor.AddObservation(localVelocity.x);
         sensor.AddObservation(localVelocity.z);

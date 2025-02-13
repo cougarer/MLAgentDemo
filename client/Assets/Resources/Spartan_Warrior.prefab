@@ -1264,6 +1264,7 @@ MonoBehaviour:
     maxStep: 0
   hasUpgradedFromAgentParameters: 1
   MaxStep: 0
+  textData: {fileID: 11400000, guid: 90801f44a05c2d94b8f74aeb0b963e0b, type: 2}
   agentid: 1
   area: {fileID: 0}
   turnSpeed: 300
