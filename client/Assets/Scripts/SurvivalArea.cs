@@ -1,10 +1,14 @@
 using System;
 using System.Collections.Generic;
+using Unity.Mathematics;
+using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 
 public class SurvivalArea : MonoBehaviour
 {
+    public Transform spawnCenter;
     public GameObject monster;
     public GameObject shop;
     public int monsterNum;
@@ -13,7 +17,7 @@ public class SurvivalArea : MonoBehaviour
     private List<NpcAgent> _agentList = new List<NpcAgent>();
     private List<Monster> _monsterList = new List<Monster>();
     private List<Shop> _shopList = new List<Shop>();
-    private float _interactRange = 1.5f; // 交互范围, 超过此范围的对象获取不到
+    [NonSerialized] public float interactRange = 2.5f; // 交互范围, 超过此范围的对象获取不到
 
     private void Awake()
     {
@@ -32,10 +36,23 @@ public class SurvivalArea : MonoBehaviour
         {
             if (agent.agentid == id)
             {
-                if (Vector3.Distance(agent.transform.position, selfAgent.transform.position) < _interactRange)
+                if (Vector3.Distance(agent.transform.position, selfAgent.transform.position) < interactRange)
                 {
                     return agent;
                 }
+            }
+        }
+
+        return null;
+    }
+
+    public Monster GetMonsterById(int id)
+    {
+        foreach (Monster monster in _monsterList)
+        {
+            if (monster.monsterid == id)
+            {
+                return monster;
             }
         }
 
@@ -49,7 +66,7 @@ public class SurvivalArea : MonoBehaviour
         {
             if (monster.monsterid == id)
             {
-                if (Vector3.Distance(monster.transform.position, agent.transform.position) < _interactRange)
+                if (Vector3.Distance(monster.transform.position, agent.transform.position) < interactRange)
                 {
                     return monster;
                 }
@@ -64,7 +81,7 @@ public class SurvivalArea : MonoBehaviour
         int cnt = 0;
         for (int i = 0; i < _monsterList.Count; i++)
         {
-            if (self.agentid != _agentList[i].agentid && Vector3.Distance(_monsterList[i].transform.position, self.transform.position) < _interactRange)
+            if (Vector3.Distance(_monsterList[i].transform.position, self.transform.position) < interactRange)
             {
                 cnt++;
             }
@@ -78,7 +95,7 @@ public class SurvivalArea : MonoBehaviour
         int cnt = 0;
         for (int i = 0; i < _agentList.Count; i++)
         {
-            if (self.agentid != _agentList[i].agentid && Vector3.Distance(_agentList[i].transform.position, self.transform.position) < _interactRange)
+            if (self.agentid != _agentList[i].agentid && Vector3.Distance(_agentList[i].transform.position, self.transform.position) < interactRange)
             {
                 cnt++;
             }
@@ -87,7 +104,7 @@ public class SurvivalArea : MonoBehaviour
         return cnt;
     }
 
-    public NpcAgent GetNearestAgent(NpcAgent self)
+    public NpcAgent GetNearestAgentInRange(NpcAgent self)
     {
         float distance = float.MaxValue;
         NpcAgent targetAgent = null;
@@ -99,17 +116,22 @@ public class SurvivalArea : MonoBehaviour
             }
 
             float d = Vector3.Distance(self.transform.position, _agentList[i].transform.position);
-            if (d < distance && d < _interactRange)
+            if (d < distance && d < interactRange)
             {
                 targetAgent = _agentList[i];
                 distance = d;
             }
         }
 
+        if (distance > interactRange)
+        {
+            return null;
+        }
+
         return targetAgent;
     }
 
-    public Shop GetNearestShop(NpcAgent self)
+    public Shop GetNearestShopInRange(NpcAgent self)
     {
         float distance = float.MaxValue;
         Shop nearestShop = null;
@@ -123,10 +145,15 @@ public class SurvivalArea : MonoBehaviour
             }
         }
 
+        if (distance > interactRange)
+        {
+            return null;
+        }
+
         return nearestShop;
     }
 
-    public Monster GetNearestMonster(NpcAgent self)
+    public Monster GetNearestMonsterInRange(NpcAgent self)
     {
         float distance = float.MaxValue;
         Monster nearestMonster = null;
@@ -140,6 +167,11 @@ public class SurvivalArea : MonoBehaviour
             }
         }
 
+        if (distance > interactRange)
+        {
+            return null;
+        }
+
         return nearestMonster;
     }
 
@@ -150,8 +182,8 @@ public class SurvivalArea : MonoBehaviour
             for (int i = 0; i < num; i++)
             {
                 GameObject go = Instantiate(type, new Vector3(Random.Range(-range, range), 1f,
-                        Random.Range(-range, range)) + transform.position,
-                    Quaternion.Euler(new Vector3(0f, Random.Range(0f, 360f), 90f)));
+                        Random.Range(-range, range)) + spawnCenter.position,
+                    quaternion.identity);
                 _shopList.Add(go.GetComponent<Shop>());
             }
         }
@@ -166,19 +198,26 @@ public class SurvivalArea : MonoBehaviour
             for (int i = 0; i < _shopList.Count; i++)
             {
                 _shopList[i].transform.position = new Vector3(Random.Range(-range, range), 1f,
-                    Random.Range(-range, range));
+                    Random.Range(-range, range)) + spawnCenter.position;
             }
         }
     }
 
     void CreateMonsters(int num, GameObject type)
     {
+        for (int i = 0; i < _monsterList.Count; i++)
+        {
+            Destroy(_monsterList[i].gameObject);
+        }
+
         _monsterList.Clear();
+
         for (int i = 0; i < num; i++)
         {
             GameObject go = Instantiate(type, new Vector3(Random.Range(-range, range), 1f,
-                    Random.Range(-range, range)) + transform.position,
-                Quaternion.Euler(new Vector3(0f, Random.Range(0f, 360f), 90f)));
+                    Random.Range(-range, range)) + spawnCenter.position,
+                quaternion.identity);
+            go.GetComponent<Monster>().Reset(100 + i);
             _monsterList.Add(go.GetComponent<Monster>());
         }
     }
@@ -191,16 +230,19 @@ public class SurvivalArea : MonoBehaviour
     }
 
     // 每杀一只, 重新生成一只
-    public void RespawnMonster(int num)
+    public void RespawnMonster(int id)
     {
-        CreateMonsters(num, monster);
+        var monster = GetMonsterById(id);
+        monster.Reset(id);
+        monster.transform.position = new Vector3(Random.Range(-range, range), 1f,
+            Random.Range(-range, range)) + spawnCenter.position;
     }
 
     // agent死后找个地方重生, 补满血, 扣分
     public void RespawnAgent(NpcAgent agent)
     {
         agent.transform.position = new Vector3(Random.Range(-range, range), 1f,
-            Random.Range(-range, range));
+            Random.Range(-range, range)) + spawnCenter.position;
         agent.Reset();
     }
 
@@ -209,7 +251,8 @@ public class SurvivalArea : MonoBehaviour
         for (int i = 0; i < _agentList.Count; i++)
         {
             _agentList[i].transform.position = new Vector3(Random.Range(-range, range), 1f,
-                Random.Range(-range, range));
+                Random.Range(-range, range)) + spawnCenter.position;
+            _agentList[i].Reset();
         }
     }
 }

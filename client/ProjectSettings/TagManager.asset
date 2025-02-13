@@ -6,6 +6,8 @@ TagManager:
   tags:
   - Agent
   - Monster
+  - Enemy
+  - Shop
   layers:
   - Default
   - TransparentFX

@@ -3,7 +3,7 @@ using UnityEngine;
 using Unity.MLAgents;
 using Unity.MLAgents.Actuators;
 using Unity.MLAgents.Sensors;
-using Random = UnityEngine.Random;
+using UnityEditor;
 
 public class NpcAgent : Agent
 {
@@ -34,12 +34,10 @@ public class NpcAgent : Agent
             return 10 + _level; // 攻击力是等级相关的
         }
     }
+
     private float AtkCD
     {
-        get
-        {
-            return _minAtkCD + (float)(_maxLevel - _level) / _maxLevel * (_maxAtkCD - _minAtkCD);
-        }
+        get { return _minAtkCD + (float)(_maxLevel - _level) / _maxLevel * (_maxAtkCD - _minAtkCD); }
     }
 
     private float _hp; // 当前血量
@@ -48,21 +46,30 @@ public class NpcAgent : Agent
     private int _maxLevel = 10; // 最大等级
 
     private float _exp;
+
     // 经验值
     private float Exp
     {
-        get
-        {
-            return _exp;
-        }
+        get { return _exp; }
         set
         {
+            int oldLevel = _level;
             foreach (var item in expTable)
             {
                 if (value > item.Item2)
                 {
                     _level = item.Item1;
+                    if (_level == _maxLevel)
+                    {
+                        Debug.LogError("agent" + agentid + "成功满级, 一个训练周期结束, 开始下一步");
+                        EndEpisode(); // 第一个agent的满级的时候结束
+                    }
                 }
+            }
+
+            if (_level != oldLevel)
+            {
+                Debug.LogError("agent" + agentid + "升级了, 当前等级为" + _level);
             }
 
             _exp = value;
@@ -94,6 +101,7 @@ public class NpcAgent : Agent
 
     public void FloatTip(string str)
     {
+        Debug.LogError(str);
         Vector3 destination = transform.position + new Vector3(0, 1, 0);
         destination.x += (Random.value - 0.5f) / 3f;
         destination.y += Random.value;
@@ -121,7 +129,6 @@ public class NpcAgent : Agent
 
     public override void CollectObservations(VectorSensor sensor)
     {
-        FloatTip("test123123");
         var localVelocity = transform.InverseTransformDirection(_AgentRb.velocity);
         sensor.AddObservation(localVelocity.x);
         sensor.AddObservation(localVelocity.z);
@@ -129,13 +136,25 @@ public class NpcAgent : Agent
         sensor.AddObservation(_maxHp); // agent当前等级的最大血量
         sensor.AddObservation(_materialNum); // 怪物材料数量
         sensor.AddObservation(area.GetAgentCntInRange(this)); // 范围内agent数量
-        sensor.AddObservation(area.GetNearestAgent(this) != null ? area.GetNearestAgent(this).GetLevel() : 0); // 最近agent等级
-        sensor.AddObservation(area.GetNearestAgent(this) != null ? area.GetNearestAgent(this).GetHp() : 0); // 最近agent血量
-        sensor.AddObservation(area.GetNearestAgent(this) != null ? area.GetNearestAgent(this).agentid : 0); // 最近agent id
+        sensor.AddObservation(area.GetNearestAgentInRange(this) != null
+            ? area.GetNearestAgentInRange(this).GetLevel()
+            : 0); // 最近agent等级
+        sensor.AddObservation(area.GetNearestAgentInRange(this) != null
+            ? area.GetNearestAgentInRange(this).GetHp()
+            : 0); // 最近agent血量
+        sensor.AddObservation(area.GetNearestAgentInRange(this) != null
+            ? area.GetNearestAgentInRange(this).agentid
+            : 0); // 最近agent id
         sensor.AddObservation(area.GetMonsterCntInRange(this)); // 范围内怪物数量
-        sensor.AddObservation(area.GetNearestMonster(this) ? area.GetNearestMonster(this).GetHp() : 0); // 最近怪物血量
-        sensor.AddObservation(area.GetNearestMonster(this) ? area.GetNearestMonster(this).GetLevel() : 0); // 最近怪物等级
-        sensor.AddObservation(area.GetNearestMonster(this) ? area.GetNearestMonster(this).monsterid : 0); // 最近怪物id
+        sensor.AddObservation(area.GetNearestMonsterInRange(this)
+            ? area.GetNearestMonsterInRange(this).GetHp()
+            : 0); // 最近怪物血量
+        sensor.AddObservation(area.GetNearestMonsterInRange(this)
+            ? area.GetNearestMonsterInRange(this).GetLevel()
+            : 0); // 最近怪物等级
+        sensor.AddObservation(area.GetNearestMonsterInRange(this)
+            ? area.GetNearestMonsterInRange(this).monsterid
+            : 0); // 最近怪物id
         sensor.AddObservation(_gold); // 金币数量
     }
 
@@ -146,8 +165,8 @@ public class NpcAgent : Agent
         _inCombat = false;
     }
 
-    // 施加被攻击
-    public void ApplyAtk(float num)
+    // 施加被攻击, 被agent击杀的话增加agent的经验
+    public int ApplyAtk(float num)
     {
         _hp -= num;
         if (_hp <= 0)
@@ -155,6 +174,8 @@ public class NpcAgent : Agent
             AddReward(-100);
             area.RespawnAgent(this);
         }
+
+        return Random.Range(10, 50);
     }
 
     public void MoveAgent(ActionBuffers actionBuffers)
@@ -181,37 +202,36 @@ public class NpcAgent : Agent
             UseHpPotion();
         }
 
-        var buyPotionCommand = discreteActions[1];
-        if (buyPotionCommand > 0)
+        var buyPotionCommand = discreteActions[1] > 0;
+        if (buyPotionCommand)
         {
-            if (area.GetNearestShop(this) != null)
+            if (area.GetNearestShopInRange(this) != null)
             {
-                BuyHpPotion(buyPotionCommand);
+                BuyHpPotion(1);
             }
         }
 
-        var buyExpCommand = discreteActions[2];
-        if (buyExpCommand > 0)
+        var buyExpCommand = discreteActions[2] > 0;
+        if (buyExpCommand)
         {
-            if (area.GetNearestShop(this) != null)
+            if (area.GetNearestShopInRange(this) != null)
             {
-                BuyExpScroll(buyExpCommand);
+                BuyExpScroll(1);
             }
         }
 
-        var atkAgentCommand = discreteActions[3]; // 直接转为agentid
-        if (atkAgentCommand > 0 && atkAgentCommand != agentid)
+        var atkAgentCommand = discreteActions[3] > 0; // 直接转为agentid
+        if (atkAgentCommand)
         {
             // 看一下他想打的agent是否在攻击范围内
-            var agent = area.GetAgentInRangeById(atkAgentCommand, this);
+            var agent = area.GetNearestAgentInRange(this);
             if (agent != null)
             {
                 // 这个需要判定攻击cd
                 if (Time.time - _lastAtkTime > AtkCD)
                 {
-                    agent.ApplyAtk(Damage);
-                    _lastAtkTime = Time.time;
-                    _inCombat = true;
+                    FloatTip("agentid为" + agentid + "的个体尝试攻击id为" + agent.agentid + "的agent");
+                    AtkAgent(agent);
                 }
             }
         }
@@ -220,7 +240,7 @@ public class NpcAgent : Agent
         if (atkMonsterCommand)
         {
             // 这个需要判定攻击cd
-            var monster = area.GetMonsterInRangeById(atkAgentCommand, this);
+            var monster = area.GetNearestMonsterInRange(this);
             if (monster != null)
             {
                 // 这个需要判定攻击cd
@@ -228,24 +248,53 @@ public class NpcAgent : Agent
                 {
                     _lastAtkTime = Time.time;
                     _inCombat = true;
-                    monster.ApplyAtk(Damage);
+
+                    FloatTip("agentid为" + agentid + "的个体尝试攻击怪物id为" + monster.monsterid + "的怪物");
+                    AtkMonster(monster);
                 }
             }
         }
 
         if (_inCombat) // 战斗中 速度上限12.5f
         {
-            if (_AgentRb.velocity.sqrMagnitude > 12.5f)
+            if (_AgentRb.velocity.sqrMagnitude > 2.5f)
             {
                 _AgentRb.velocity *= 0.95f;
             }
         }
         else // 非战斗中, 速度上线25f
         {
-            if (_AgentRb.velocity.sqrMagnitude > 25f)
+            if (_AgentRb.velocity.sqrMagnitude > 5f)
             {
                 _AgentRb.velocity *= 0.95f;
             }
+        }
+    }
+
+    private void AtkAgent(NpcAgent agent)
+    {
+        var ret = agent.ApplyAtk(Damage);
+
+        if (ret > 0)
+        {
+            AddReward(10); // 击杀npc给奖励
+            Exp += ret;
+            FloatTip("agent" + agentid + "成功击杀其他agent, 当前经验值为" + Exp);
+            area.RespawnAgent(agent); // 让这个agent重生
+        }
+    }
+
+    private void AtkMonster(Monster monster)
+    {
+        var monsterKillRet = monster.ApplyAtk(Damage);
+
+        if (monsterKillRet.Item1 > 0)
+        {
+            _materialNum += monsterKillRet.Item1;
+            AddReward(10); // 击杀怪物给奖励
+            Exp += monster.rewardExp;
+            FloatTip("agent" + agentid + "成功击杀怪物, 当前经验值为" + Exp);
+            area.RespawnMonster(monsterKillRet.Item2); // 让这个怪物重生
         }
     }
 
@@ -253,6 +302,7 @@ public class NpcAgent : Agent
     {
         if (_hpPotionCnt > 0)
         {
+            FloatTip("agentid为" + agentid + "的个体使用了血瓶");
             if (_hp < _maxHp)
             {
                 AddReward(10); // 有效加血给奖励
@@ -267,6 +317,7 @@ public class NpcAgent : Agent
     {
         if (_gold > _hpPotionPrice * cnt)
         {
+            FloatTip("agentid为" + agentid + "的个体购买了血瓶");
             _gold -= _hpPotionPrice * cnt;
             _hpPotionCnt += cnt;
         }
@@ -276,6 +327,7 @@ public class NpcAgent : Agent
     {
         if (_gold > _expScrollPrice * cnt)
         {
+            FloatTip("agentid为" + agentid + "的个体购买并使用了经验卷轴");
             AddReward(10 * cnt); // 加经验给奖励
             _gold -= _expScrollPrice * cnt;
             Exp += _expScrollEffect * cnt;
@@ -321,7 +373,9 @@ public class NpcAgent : Agent
         // myLaser.transform.localScale = new Vector3(0f, 0f, 0f);
         // transform.position = new Vector3(Random.Range(-m_MyArea.range, m_MyArea.range),
         //     2f, Random.Range(-m_MyArea.range, m_MyArea.range))
-            // + area.transform.position;
+        // + area.transform.position;
+
+        area.ResetArea();
         transform.rotation = Quaternion.Euler(new Vector3(0f, Random.Range(0, 360)));
 
         SetResetParameters();
@@ -337,4 +391,27 @@ public class NpcAgent : Agent
     {
         SetAgentScale();
     }
+
+    public int segments = 50;
+
+    private void OnDrawGizmos()
+    {
+        Gizmos.color = Color.red;
+
+        float deltaTheta = (2f * Mathf.PI) / segments;
+
+        Vector3 firstPoint = transform.position + new Vector3(area.interactRange, 0, 0);
+        Vector3 lastPoint = firstPoint;
+
+        for (int i = 1; i <= segments; i++)
+        {
+            float theta = i * deltaTheta;
+            Vector3 point = transform.position + new Vector3(Mathf.Cos(theta) * area.interactRange, 0, Mathf.Sin(theta) * area.interactRange);
+            Gizmos.DrawLine(lastPoint, point);
+            lastPoint = point;
+        }
+
+        Gizmos.DrawLine(lastPoint, firstPoint);
+    }
+
 }
