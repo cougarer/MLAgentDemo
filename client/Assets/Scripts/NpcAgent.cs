@@ -41,7 +41,7 @@ public class NpcAgent : Agent
     }
 
     private float _hp; // 当前血量
-    private float _maxHp = 1000; // 最大血量
+    private float _maxHp = 500; // 最大血量
     private int _level; // 当前等级
     private int _maxLevel = 10; // 最大等级
     private float _exp;
@@ -176,7 +176,7 @@ public class NpcAgent : Agent
         _hp -= num;
         if (_hp <= 0)
         {
-            AddReward(-100);
+            AddReward(-1000);
             area.RespawnAgent(this);
         }
 
@@ -282,7 +282,7 @@ public class NpcAgent : Agent
 
         if (ret > 0)
         {
-            AddReward(10); // 击杀npc给奖励
+            AddReward(80); // 击杀npc给奖励
             Exp += ret;
             _gold += agent.GetGold();
             FloatTip("agent" + agentid + "成功击杀其他agent, 当前经验值为" + Exp);
@@ -296,7 +296,7 @@ public class NpcAgent : Agent
 
         if (monsterKillRet.Item1)
         {
-            AddReward(10); // 击杀怪物给奖励
+            AddReward(50); // 击杀怪物给奖励
             Exp += monster.rewardExp;
             _gold += monster.rewardGold;
             FloatTip("agent" + agentid + "成功击杀怪物, 当前经验值为" + Exp);

@@ -1208,7 +1208,7 @@ MonoBehaviour:
     VectorActionDescriptions: []
     VectorActionSpaceType: 0
     hasUpgradedBrainParametersWithActionSpec: 1
-  m_Model: {fileID: 0}
+  m_Model: {fileID: 5022602860645237092, guid: 1397aa8048ad1d3479fbcfb4dccee9fb, type: 3}
   m_InferenceDevice: 0
   m_BehaviorType: 0
   m_BehaviorName: NPCAgent
@@ -1230,7 +1230,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_SensorName: GridSensor
-  m_CellScale: {x: 1, y: 0.01, z: 1}
+  m_CellScale: {x: 1, y: 1, z: 1}
   m_GridSize: {x: 40, y: 1, z: 40}
   m_RotateWithAgent: 1
   m_AgentGameObject: {fileID: 1675487488}
@@ -1240,13 +1240,13 @@ MonoBehaviour:
   - Shop
   m_ColliderMask:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 1
   m_MaxColliderBufferSize: 500
   m_InitialColliderBufferSize: 4
   m_DebugColors:
-  - {r: 0, g: 0, b: 0, a: 0}
-  - {r: 0, g: 0, b: 0, a: 0}
-  - {r: 0, g: 0, b: 0, a: 0}
+  - {r: 0.148332, g: 1, b: 0, a: 0}
+  - {r: 1, g: 0.31880745, b: 0.051886797, a: 0}
+  - {r: 0.3537736, g: 0.3613099, b: 1, a: 0}
   m_GizmoYOffset: 0
   m_ShowGizmos: 1
   m_CompressionType: 1
