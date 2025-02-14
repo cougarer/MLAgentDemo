@@ -17,9 +17,9 @@ public class SurvivalArea : MonoBehaviour
     private List<NpcAgent> _agentList = new List<NpcAgent>();
     private List<Monster> _monsterList = new List<Monster>();
     private List<Shop> _shopList = new List<Shop>();
-    [NonSerialized] public float interactRange = 2.5f; // 交互范围, 超过此范围的对象获取不到
+    [NonSerialized] public float interactRange = 3.5f; // 交互范围, 超过此范围的对象获取不到
 
-    private void Awake()
+    private void Start()
     {
         // 获取场上所有agent, 保存起来
         GameObject[] objects = GameObject.FindGameObjectsWithTag("Agent");
@@ -27,6 +27,8 @@ public class SurvivalArea : MonoBehaviour
         {
             _agentList.Add(obj.GetComponent<NpcAgent>());
         }
+
+        ResetArea(true);
     }
 
     // 仅返回探测范围内的agent
@@ -222,9 +224,9 @@ public class SurvivalArea : MonoBehaviour
         }
     }
 
-    public void ResetArea()
+    public void ResetArea(bool awaken)
     {
-        ResetAgents();
+        ResetAgents(awaken);
         CreateMonsters(monsterNum, monster);
         CreateShops(shopNum, shop);
     }
@@ -246,13 +248,17 @@ public class SurvivalArea : MonoBehaviour
         agent.Reset();
     }
 
-    public void ResetAgents()
+    public void ResetAgents(bool awaken)
     {
         for (int i = 0; i < _agentList.Count; i++)
         {
             _agentList[i].transform.position = new Vector3(Random.Range(-range, range), 1f,
                 Random.Range(-range, range)) + spawnCenter.position;
             _agentList[i].Reset();
+            if (!awaken)
+            {
+                _agentList[i].EndEpisode();
+            }
         }
     }
 }

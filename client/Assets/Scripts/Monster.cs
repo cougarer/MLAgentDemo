@@ -7,9 +7,10 @@ using Random = UnityEngine.Random;
 public class Monster : MonoBehaviour
 {
     private float _hp; // 当前血量
-    private float _maxHp = 20; // 最大血量
+    private float _maxHp = 90f; // 最大血量
     private int _level = 1; // 暂时先都是1级怪物
     [NonSerialized] public int rewardExp = 90; // 击杀奖励经验
+    [NonSerialized] public int rewardGold = 90; // 击杀奖励金币
     [NonSerialized] public int monsterid;
     [NonSerialized] public float speed = 1f; // 怪物移动速度
     public float range = 10f; // 移动范围，以怪物初始位置为中心的正方形区域
@@ -31,17 +32,17 @@ public class Monster : MonoBehaviour
         _hp = _maxHp;
     }
 
-    // 返回的是材料数量, 如果被击杀则返回材料
-    public (int, int) ApplyAtk(float damage)
+    // bool: 是否死亡, int: 怪物id
+    public (bool, int) ApplyAtk(float damage)
     {
         Debug.LogError("怪物id: " + monsterid + " 受到伤害: " + damage + " 当前血量: " + _hp + " 最大血量: " + _maxHp + "");
         _hp -= damage;
         if (_hp <= 0)
         {
-            return (Random.Range(1, 5), monsterid);
+            return (true, monsterid);
         }
 
-        return (0, monsterid);
+        return (false, monsterid);
     }
 
     private void Start()

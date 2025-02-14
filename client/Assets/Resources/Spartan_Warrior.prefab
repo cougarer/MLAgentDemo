@@ -1140,6 +1140,7 @@ GameObject:
   - component: {fileID: 6719614145644487060}
   - component: {fileID: 3353983671912696165}
   - component: {fileID: 5759754499341738572}
+  - component: {fileID: 8982257262934085366}
   m_Layer: 0
   m_Name: Spartan_Warrior
   m_TagString: Agent
@@ -1269,6 +1270,7 @@ MonoBehaviour:
   area: {fileID: 0}
   turnSpeed: 300
   moveSpeed: 2
+  segments: 50
 --- !u!114 &3353983671912696165
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1309,8 +1311,31 @@ Rigidbody:
   m_UseGravity: 0
   m_IsKinematic: 0
   m_Interpolate: 0
-  m_Constraints: 0
+  m_Constraints: 84
   m_CollisionDetection: 0
+--- !u!136 &8982257262934085366
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1675487488}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Height: 2.09
+  m_Direction: 1
+  m_Center: {x: 0, y: 0.94, z: 0}
 --- !u!1 &1682096655
 GameObject:
   m_ObjectHideFlags: 0

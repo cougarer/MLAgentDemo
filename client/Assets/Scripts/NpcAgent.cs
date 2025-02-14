@@ -44,8 +44,6 @@ public class NpcAgent : Agent
     private float _maxHp = 1000; // 最大血量
     private int _level; // 当前等级
     private int _maxLevel = 10; // 最大等级
-
-    private int _goldMonster = 90; //击杀怪物的奖励金币
     private float _exp;
 
     // 经验值
@@ -63,7 +61,7 @@ public class NpcAgent : Agent
                     if (_level == _maxLevel)
                     {
                         Debug.LogError("agent" + agentid + "成功满级, 一个训练周期结束, 开始下一步");
-                        EndEpisode(); // 第一个agent的满级的时候结束
+                        area.ResetArea(false);
                     }
                 }
             }
@@ -76,8 +74,6 @@ public class NpcAgent : Agent
             _exp = value;
         }
     }
-
-    private float _materialNum; // 怪物材料数量, 可以用来换钱
 
     // agent level进阶需要的经验值, 举例: 大于100点经验值才能到1级
     private List<(int, float)> expTable = new List<(int, float)>()
@@ -141,7 +137,6 @@ public class NpcAgent : Agent
         sensor.AddObservation(localVelocity.z);
         sensor.AddObservation(_hp); // agent当前血量
         sensor.AddObservation(_maxHp); // agent当前等级的最大血量
-        sensor.AddObservation(_materialNum); // 怪物材料数量
         sensor.AddObservation(area.GetAgentCntInRange(this)); // 范围内agent数量
         sensor.AddObservation(area.GetNearestAgentInRange(this) != null
             ? area.GetNearestAgentInRange(this).GetLevel()
@@ -172,7 +167,7 @@ public class NpcAgent : Agent
         _hp = _maxHp;
         _gold = 0;
         _inCombat = false;
-        _exp = 0;
+        Exp = 0;
     }
 
     // 施加被攻击, 被agent击杀的话增加agent的经验
@@ -299,12 +294,11 @@ public class NpcAgent : Agent
     {
         var monsterKillRet = monster.ApplyAtk(Damage);
 
-        if (monsterKillRet.Item1 > 0)
+        if (monsterKillRet.Item1)
         {
-            _materialNum += monsterKillRet.Item1;
             AddReward(10); // 击杀怪物给奖励
             Exp += monster.rewardExp;
-            _gold += _goldMonster;
+            _gold += monster.rewardGold;
             FloatTip("agent" + agentid + "成功击杀怪物, 当前经验值为" + Exp);
             area.RespawnMonster(monsterKillRet.Item2); // 让这个怪物重生
         }
@@ -376,18 +370,14 @@ public class NpcAgent : Agent
         }
     }
 
+    public void End()
+    {
+        EndEpisode();
+    }
+
     public override void OnEpisodeBegin()
     {
-        // Unfreeze();
-        // Unpoison();
-        // Unsatiate();
-        // _AgentRb.velocity = Vector3.zero;
-        // myLaser.transform.localScale = new Vector3(0f, 0f, 0f);
-        // transform.position = new Vector3(Random.Range(-m_MyArea.range, m_MyArea.range),
-        //     2f, Random.Range(-m_MyArea.range, m_MyArea.range))
-        // + area.transform.position;
-
-        area.ResetArea();
+        Debug.LogError("agent初始化, agentid为" + agentid + "血量为" + _hp + "等级为" + _level + "经验值为" + _exp + "金币数量为" + _gold);
         transform.rotation = Quaternion.Euler(new Vector3(0f, Random.Range(0, 360)));
 
         SetResetParameters();
