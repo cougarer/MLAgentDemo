@@ -81,14 +81,14 @@ public class NpcAgent : Agent
         (0, 0),
         (1, 100),
         (2, 200),
-        (3, 300),
-        (4, 400),
-        (5, 500),
-        (6, 600),
-        (7, 700),
-        (8, 800),
-        (9, 900),
-        (10, 1000),
+        (3, 400),
+        (4, 600),
+        (5, 800),
+        (6, 1000),
+        (7, 1200),
+        (8, 1400),
+        (9, 1600),
+        (10, 2000)
     };
 
     private bool _inCombat; // 战斗中移动速度下降
@@ -174,13 +174,14 @@ public class NpcAgent : Agent
     public int ApplyAtk(float num)
     {
         _hp -= num;
+        Debug.LogError("agentid: " + agentid + " 受到伤害: " + num + " 当前血量: " + _hp + " 最大血量: " + _maxHp);
         if (_hp <= 0)
         {
             AddReward(-1000);
             area.RespawnAgent(this);
         }
 
-        return Random.Range(200, 500);
+        return Random.Range(50, 150);
     }
 
     public void MoveAgent(ActionBuffers actionBuffers)
@@ -235,6 +236,7 @@ public class NpcAgent : Agent
                 // 这个需要判定攻击cd
                 if (Time.time - _lastAtkTime > AtkCD)
                 {
+                    _lastAtkTime = Time.time;
                     FloatTip("agentid为" + agentid + "的个体尝试攻击id为" + agent.agentid + "的agent");
                     AtkAgent(agent);
                 }
@@ -252,7 +254,6 @@ public class NpcAgent : Agent
                 if (Time.time - _lastAtkTime > AtkCD)
                 {
                     _lastAtkTime = Time.time;
-                    _inCombat = true;
 
                     FloatTip("agentid为" + agentid + "的个体尝试攻击怪物id为" + monster.monsterid + "的怪物");
                     AtkMonster(monster);
@@ -260,19 +261,9 @@ public class NpcAgent : Agent
             }
         }
 
-        if (_inCombat) // 战斗中 速度上限12.5f
+        if (_AgentRb.velocity.sqrMagnitude > 5f)
         {
-            if (_AgentRb.velocity.sqrMagnitude > 2.5f)
-            {
-                _AgentRb.velocity *= 0.95f;
-            }
-        }
-        else // 非战斗中, 速度上线25f
-        {
-            if (_AgentRb.velocity.sqrMagnitude > 5f)
-            {
-                _AgentRb.velocity *= 0.95f;
-            }
+            _AgentRb.velocity *= 0.95f;
         }
     }
 
