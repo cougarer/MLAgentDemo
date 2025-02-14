@@ -174,10 +174,11 @@ public class NpcAgent : Agent
     public int ApplyAtk(float num)
     {
         _hp -= num;
-        Debug.LogError("agentid: " + agentid + " 受到伤害: " + num + " 当前血量: " + _hp + " 最大血量: " + _maxHp);
+        Debug.LogError("agent受到伤害, id: " + agentid + " 受到伤害: " + num + " 当前血量: " + _hp + " 最大血量: " + _maxHp);
         if (_hp <= 0)
         {
             AddReward(-1000);
+            Debug.LogError("agent死亡, id:" + agentid + " 当前血量:" + _hp);
             area.RespawnAgent(this);
         }
 
