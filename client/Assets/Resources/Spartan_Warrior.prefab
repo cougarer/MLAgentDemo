@@ -1235,8 +1235,9 @@ MonoBehaviour:
   m_RotateWithAgent: 1
   m_AgentGameObject: {fileID: 1675487488}
   m_DetectableTags:
-  - 
-  - 
+  - Monster
+  - Agent
+  - Shop
   m_ColliderMask:
     serializedVersion: 2
     m_Bits: 0
@@ -1245,8 +1246,9 @@ MonoBehaviour:
   m_DebugColors:
   - {r: 0, g: 0, b: 0, a: 0}
   - {r: 0, g: 0, b: 0, a: 0}
+  - {r: 0, g: 0, b: 0, a: 0}
   m_GizmoYOffset: 0
-  m_ShowGizmos: 0
+  m_ShowGizmos: 1
   m_CompressionType: 1
   m_ObservationStacks: 1
 --- !u!114 &6719614145644487060
@@ -1266,7 +1268,7 @@ MonoBehaviour:
   hasUpgradedFromAgentParameters: 1
   MaxStep: 0
   textData: {fileID: 11400000, guid: 90801f44a05c2d94b8f74aeb0b963e0b, type: 2}
-  agentid: 1
+  agentid: 10
   area: {fileID: 0}
   turnSpeed: 300
   moveSpeed: 2
