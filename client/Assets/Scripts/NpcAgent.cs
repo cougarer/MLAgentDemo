@@ -138,25 +138,13 @@ public class NpcAgent : Agent
         sensor.AddObservation(_hp); // agent当前血量
         sensor.AddObservation(_maxHp); // agent当前等级的最大血量
         sensor.AddObservation(area.GetAgentCntInRange(this)); // 范围内agent数量
-        sensor.AddObservation(area.GetNearestAgentInRange(this) != null
-            ? area.GetNearestAgentInRange(this).GetLevel()
-            : 0); // 最近agent等级
-        sensor.AddObservation(area.GetNearestAgentInRange(this) != null
-            ? area.GetNearestAgentInRange(this).GetHp()
-            : 0); // 最近agent血量
-        sensor.AddObservation(area.GetNearestAgentInRange(this) != null
-            ? area.GetNearestAgentInRange(this).agentid
-            : 0); // 最近agent id
+        sensor.AddObservation(area.GetNearestAgentInRange(this) != null ? area.GetNearestAgentInRange(this).GetLevel() : 0); // 最近agent等级
+        sensor.AddObservation(area.GetNearestAgentInRange(this) != null ? area.GetNearestAgentInRange(this).GetHp() : 0); // 最近agent血量
+        sensor.AddObservation(area.GetNearestAgentInRange(this) != null ? area.GetNearestAgentInRange(this).agentid : 0); // 最近agent id
         sensor.AddObservation(area.GetMonsterCntInRange(this)); // 范围内怪物数量
-        sensor.AddObservation(area.GetNearestMonsterInRange(this)
-            ? area.GetNearestMonsterInRange(this).GetHp()
-            : 0); // 最近怪物血量
-        sensor.AddObservation(area.GetNearestMonsterInRange(this)
-            ? area.GetNearestMonsterInRange(this).GetLevel()
-            : 0); // 最近怪物等级
-        sensor.AddObservation(area.GetNearestMonsterInRange(this)
-            ? area.GetNearestMonsterInRange(this).monsterid
-            : 0); // 最近怪物id
+        sensor.AddObservation(area.GetNearestMonsterInRange(this) ? area.GetNearestMonsterInRange(this).GetHp() : 0); // 最近怪物血量
+        sensor.AddObservation(area.GetNearestMonsterInRange(this) ? area.GetNearestMonsterInRange(this).GetLevel() : 0); // 最近怪物等级
+        sensor.AddObservation(area.GetNearestMonsterInRange(this) ? area.GetNearestMonsterInRange(this).monsterid : 0); // 最近怪物id
         sensor.AddObservation(_gold); // 金币数量
     }
 
@@ -304,6 +292,10 @@ public class NpcAgent : Agent
             if (_hp < _maxHp)
             {
                 AddReward(10); // 有效加血给奖励
+            }
+            else
+            {
+                AddReward(-10); // 浪费可耻
             }
 
             _hpPotionCnt--;
